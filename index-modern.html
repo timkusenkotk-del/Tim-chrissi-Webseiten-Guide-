@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>10-Finger · Typing Trainer</title>
+<style>
+  :root {
+    /* Surfaces */
+    --bg: #08080c;
+    --bg-2: #0d0d14;
+    --panel: rgba(22, 22, 32, 0.7);
+    --panel-solid: #16161f;
+    --elevated: rgba(38, 38, 52, 0.6);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+
+    /* Text */
+    --text: #f1f1f5;
+    --text-2: #c2c2cc;
+    --text-dim: #7a7a88;
+    --text-faint: #4d4d58;
+
+    /* Accents */
+    --accent: #8b7dff;
+    --accent-2: #5b8bff;
+    --accent-glow: rgba(139, 125, 255, 0.35);
+    --ok: #34d399;
+    --err: #f87171;
+    --warn: #fbbf24;
+
+    /* Finger palette (modern, harmonious) */
+    --f-lp: #f87171;
+    --f-lr: #fb923c;
+    --f-lm: #fbbf24;
+    --f-li: #34d399;
+    --f-th: #94a3b8;
+    --f-ri: #22d3ee;
+    --f-rm: #60a5fa;
+    --f-rr: #a78bfa;
+    --f-rp: #f472b6;
+
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-lg: 22px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    color: var(--text);
+    font-family: "Inter", "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    height: 100%;
+    overflow-x: hidden;
+  }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(139, 125, 255, 0.12), transparent 60%),
+      radial-gradient(900px 500px at 10% 110%, rgba(91, 139, 255, 0.10), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    background-attachment: fixed;
+    display: flex; flex-direction: column;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(139, 125, 255, 0.06), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(91, 139, 255, 0.05), transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    background: rgba(8, 8, 12, 0.6);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px var(--accent-glow);
+    position: relative;
+  }
+  .logo::after {
+    content: "";
+    position: absolute; inset: 2px;
+    border-radius: 8px;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 6px);
+    mask: linear-gradient(180deg, transparent 40%, #000 40% 60%, transparent 60%);
+    -webkit-mask: linear-gradient(180deg, transparent 40%, #000 40% 60%, transparent 60%);
+  }
+  .brand h1 {
+    margin: 0; font-size: 16px; font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand .tag {
+    display: block;
+    font-size: 11px; color: var(--text-dim);
+    font-weight: 500; letter-spacing: 0.02em;
+  }
+  .header-hints {
+    display: flex; gap: 16px; align-items: center;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .hint-group { display: flex; align-items: center; gap: 6px; }
+  .kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 7px; min-width: 22px; height: 22px;
+    font-family: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-2);
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.2);
+  }
+
+  /* ---------- Layout ---------- */
+  main {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    padding: 28px 32px;
+    max-width: 1360px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  @media (max-width: 960px) {
+    main { grid-template-columns: 1fr; padding: 20px; }
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    background: var(--panel);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    max-height: calc(100vh - 112px);
+    overflow-y: auto;
+  }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  .sidebar h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin: 6px 6px 8px;
+    font-weight: 600;
+  }
+  .sidebar h2:not(:first-of-type) { margin-top: 18px; }
+
+  .list {
+    display: flex; flex-direction: column;
+    gap: 2px;
+  }
+  .item-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-2);
+    padding: 9px 11px;
+    text-align: left;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-family: inherit;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    transition: all 160ms ease;
+    font-weight: 500;
+  }
+  .item-btn:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+  }
+  .item-btn.active {
+    background: linear-gradient(135deg, rgba(139, 125, 255, 0.15), rgba(91, 139, 255, 0.10));
+    border-color: rgba(139, 125, 255, 0.3);
+    color: var(--text);
+  }
+  .item-btn .best {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    font-family: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+  }
+  .item-btn .best.ok { color: var(--ok); }
+  .item-btn .best.has { color: var(--text-dim); }
+
+  .option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 11px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    font-size: 13.5px;
+    color: var(--text-2);
+    transition: background 160ms;
+  }
+  .option:hover { background: rgba(255, 255, 255, 0.04); }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    width: 34px; height: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    transition: background 160ms;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #e0e0e8;
+    border-radius: 50%;
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  input[type="checkbox"].toggle-input {
+    position: absolute; opacity: 0; pointer-events: none;
+  }
+  input.toggle-input:checked + .toggle {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  }
+  input.toggle-input:checked + .toggle::after {
+    transform: translateX(14px);
+    background: #fff;
+  }
+
+  /* ---------- Workspace ---------- */
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Stats strip */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .stat {
+    background: var(--panel);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+  }
+  .stat .label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .stat .value {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    background: linear-gradient(180deg, #fff, #b4b4c4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .stat .value.ok { background: linear-gradient(180deg, var(--ok), #059669); -webkit-background-clip: text; background-clip: text; }
+  .stat .value.warn { background: linear-gradient(180deg, var(--warn), #d97706); -webkit-background-clip: text; background-clip: text; }
+  .stat .value.err { background: linear-gradient(180deg, var(--err), #dc2626); -webkit-background-clip: text; background-clip: text; }
+  .stat .unit {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-left: 2px;
+    -webkit-text-fill-color: var(--text-dim);
+  }
+
+  /* Progress bar inside text panel */
+  .progress-bar {
+    position: absolute;
+    top: 0; left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    box-shadow: 0 0 10px var(--accent-glow);
+    transition: width 160ms ease;
+    border-top-left-radius: var(--radius-lg);
+    z-index: 2;
+  }
+
+  /* Text panel */
+  .text-panel {
+    background: var(--panel);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 36px 40px;
+    line-height: 1.9;
+    font-size: 24px;
+    font-family: "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, monospace;
+    min-height: 180px;
+    user-select: none;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 200ms;
+  }
+  .text-panel:focus { border-color: rgba(139, 125, 255, 0.5); }
+  .text-panel .hint {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: "Inter", system-ui, sans-serif;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .text-panel .hint .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dim);
+  }
+  .text-panel.typing .hint .dot { background: var(--ok); animation: pulse 1.4s infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+    50% { opacity: 0.6; transform: scale(1.2); box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+  }
+
+  .char {
+    position: relative;
+    color: var(--text-faint);
+    transition: color 60ms;
+  }
+  .char.done { color: var(--text); }
+  .char.wrong {
+    color: var(--err);
+    background: rgba(248, 113, 113, 0.12);
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.3);
+  }
+  .char.current {
+    color: var(--text);
+    position: relative;
+  }
+  .char.current::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -3px;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--accent-glow);
+    animation: caretPulse 1s ease-in-out infinite;
+  }
+  @keyframes caretPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .char.space { white-space: pre; }
+  .char.space.wrong {
+    background: rgba(248, 113, 113, 0.25);
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 160ms ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .btn.primary:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+  .btn.ghost { background: transparent; }
+
+  /* Keyboard */
+  .keyboard-wrap {
+    background: var(--panel);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 20px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .keyboard {
+    display: flex; flex-direction: column; gap: 6px;
+    align-items: center;
+  }
+  .kb-row {
+    display: flex;
+    gap: 5px;
+  }
+  .key {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(46, 46, 62, 0.8), rgba(30, 30, 42, 0.8));
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
+    color: var(--text-2);
+    position: relative;
+    transition: all 80ms ease;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 500;
+  }
+  .key.wide { width: 64px; }
+  .key.wider { width: 82px; }
+  .key.widest { width: 104px; }
+  .key.space { width: 280px; }
+  .key.home { border-color: rgba(255, 255, 255, 0.14); }
+  .key.home::after {
+    content: "";
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px; height: 2px;
+    background: currentColor;
+    opacity: 0.35;
+    border-radius: 2px;
+  }
+  /* finger color indicator as left stripe */
+  .key::before {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px; bottom: 2px;
+    width: 3px;
+    border-radius: 2px;
+    opacity: 0.85;
+  }
+  .key.f-lp::before { background: var(--f-lp); }
+  .key.f-lr::before { background: var(--f-lr); }
+  .key.f-lm::before { background: var(--f-lm); }
+  .key.f-li::before { background: var(--f-li); }
+  .key.f-th::before { background: var(--f-th); opacity: 0.5; }
+  .key.f-ri::before { background: var(--f-ri); }
+  .key.f-rm::before { background: var(--f-rm); }
+  .key.f-rr::before { background: var(--f-rr); }
+  .key.f-rp::before { background: var(--f-rp); }
+
+  .key.next {
+    background: linear-gradient(180deg, rgba(139, 125, 255, 0.25), rgba(91, 139, 255, 0.18));
+    border-color: rgba(139, 125, 255, 0.7);
+    color: #fff;
+    box-shadow:
+      0 0 0 3px rgba(139, 125, 255, 0.2),
+      0 0 24px var(--accent-glow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+  }
+  .key.shift-next {
+    border-color: rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.18);
+  }
+  .key.pressed {
+    transform: translateY(1px);
+    background: linear-gradient(180deg, rgba(20, 20, 28, 0.9), rgba(30, 30, 42, 0.9));
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .key .label {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .key .shifted {
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-bottom: 2px;
+    font-weight: 400;
+  }
+  .key.next .shifted { color: rgba(255, 255, 255, 0.65); }
+
+  /* Finger legend */
+  .legend {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 14px;
+    justify-content: center;
+    font-size: 11px; color: var(--text-dim);
+    max-width: 800px;
+  }
+  .legend .item {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+  .legend .dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* Result panel */
+  .result-panel {
+    background: var(--panel);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    display: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .result-panel.show {
+    display: block;
+    animation: slideIn 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .result-panel::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--ok));
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result-panel h3 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .result-panel .sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .new-best {
+    display: none;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(52, 211, 153, 0.05));
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    border-radius: var(--radius-sm);
+    color: var(--ok);
+    font-weight: 600;
+    font-size: 13px;
+    align-items: center;
+    gap: 8px;
+  }
+  .new-best.show { display: inline-flex; }
+  .result-hint {
+    color: var(--text-dim);
+    font-size: 12.5px;
+    display: flex; gap: 14px; flex-wrap: wrap;
+  }
+
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 16px;
+    color: var(--text-faint);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    background: rgba(8, 8, 12, 0.4);
+  }
+  footer b { color: var(--text-dim); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo"></div>
+    <div>
+      <h1>10-Finger</h1>
+      <span class="tag">Typing Trainer · QWERTZ</span>
+    </div>
+  </div>
+  <div class="header-hints">
+    <span class="hint-group"><span class="kbd">Esc</span> neu starten</span>
+    <span class="hint-group"><span class="kbd">Tab</span> nächste</span>
+    <span class="hint-group"><span class="kbd">Enter</span> wiederholen</span>
+  </div>
+</header>
+
+<main>
+  <aside class="sidebar">
+    <h2>Lektionen</h2>
+    <div class="list" id="lessonList"></div>
+
+    <h2>Modus</h2>
+    <div class="list">
+      <button class="item-btn" data-mode="practice" id="modePractice">
+        <span>Freies Üben</span>
+        <span class="best">24 Wörter</span>
+      </button>
+      <button class="item-btn" data-mode="quote" id="modeQuote">
+        <span>Zitate</span>
+        <span class="best">zufällig</span>
+      </button>
+    </div>
+
+    <h2>Optionen</h2>
+    <label class="option">
+      <span>Tastatur anzeigen</span>
+      <input type="checkbox" class="toggle-input" id="optShowKb" checked />
+      <span class="toggle"></span>
+    </label>
+    <label class="option">
+      <span>Fehlerton</span>
+      <input type="checkbox" class="toggle-input" id="optSound" />
+      <span class="toggle"></span>
+    </label>
+    <label class="option">
+      <span>Strikter Modus</span>
+      <input type="checkbox" class="toggle-input" id="optStrict" />
+      <span class="toggle"></span>
+    </label>
+  </aside>
+
+  <section class="workspace">
+    <div class="stats">
+      <div class="stat"><div class="label">WPM</div><div class="value" id="sWpm">0</div></div>
+      <div class="stat"><div class="label">Genauigkeit</div><div class="value" id="sAcc">100<span class="unit">%</span></div></div>
+      <div class="stat"><div class="label">Fehler</div><div class="value" id="sErr">0</div></div>
+      <div class="stat"><div class="label">Zeit</div><div class="value" id="sTime">0:00</div></div>
+    </div>
+
+    <div class="text-panel" id="textPanel" tabindex="0">
+      <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+      <span class="hint" id="panelHint"><span class="dot"></span> Klicken & lostippen</span>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" id="btnRestart">Neu starten</button>
+      <button class="btn" id="btnNextLesson">Nächste Lektion</button>
+      <button class="btn ghost" id="btnClearStats">Fortschritt zurücksetzen</button>
+    </div>
+
+    <div class="result-panel" id="resultPanel">
+      <h3 id="resultTitle">Fertig!</h3>
+      <div class="sub" id="resultSub">Deine Ergebnisse für diese Runde</div>
+      <div class="new-best" id="newBest">Neue Bestleistung</div>
+      <div class="result-grid">
+        <div class="stat"><div class="label">WPM</div><div class="value" id="rWpm">0</div></div>
+        <div class="stat"><div class="label">Genauigkeit</div><div class="value" id="rAcc">0<span class="unit">%</span></div></div>
+        <div class="stat"><div class="label">Fehler</div><div class="value" id="rErr">0</div></div>
+        <div class="stat"><div class="label">Dauer</div><div class="value" id="rTime">0<span class="unit">s</span></div></div>
+      </div>
+      <div class="result-hint">
+        <span><span class="kbd">Enter</span> Wiederholung</span>
+        <span><span class="kbd">Tab</span> nächste Lektion</span>
+      </div>
+    </div>
+
+    <div class="keyboard-wrap">
+      <div class="keyboard" id="keyboard"></div>
+      <div class="legend">
+        <span class="item"><span class="dot" style="background:var(--f-lp);color:var(--f-lp)"></span>Kl. Finger L</span>
+        <span class="item"><span class="dot" style="background:var(--f-lr);color:var(--f-lr)"></span>Ring L</span>
+        <span class="item"><span class="dot" style="background:var(--f-lm);color:var(--f-lm)"></span>Mittel L</span>
+        <span class="item"><span class="dot" style="background:var(--f-li);color:var(--f-li)"></span>Zeige L</span>
+        <span class="item"><span class="dot" style="background:var(--f-th);color:var(--f-th)"></span>Daumen</span>
+        <span class="item"><span class="dot" style="background:var(--f-ri);color:var(--f-ri)"></span>Zeige R</span>
+        <span class="item"><span class="dot" style="background:var(--f-rm);color:var(--f-rm)"></span>Mittel R</span>
+        <span class="item"><span class="dot" style="background:var(--f-rr);color:var(--f-rr)"></span>Ring R</span>
+        <span class="item"><span class="dot" style="background:var(--f-rp);color:var(--f-rp)"></span>Kl. Finger R</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>Grundstellung: linke Hand auf <b>a s d f</b>, rechte Hand auf <b>j k l ö</b> — Zeigefinger ruhen auf <b>f</b> und <b>j</b></footer>
+
+<script>
+"use strict";
+
+/* ---------- Keyboard Layout (QWERTZ) ---------- */
+const KB_LAYOUT = [
+  [
+    { c: "^", s: "°", f: "lp" }, { c: "1", s: "!", f: "lp" }, { c: "2", s: '"', f: "lr" },
+    { c: "3", s: "§", f: "lm" }, { c: "4", s: "$", f: "li" }, { c: "5", s: "%", f: "li" },
+    { c: "6", s: "&", f: "li" }, { c: "7", s: "/", f: "ri" }, { c: "8", s: "(", f: "ri" },
+    { c: "9", s: ")", f: "rm" }, { c: "0", s: "=", f: "rr" }, { c: "ß", s: "?", f: "rp" },
+    { c: "´", s: "`", f: "rp" }, { c: "⌫", w: "wide", f: "rp", special: "bs" }
+  ],
+  [
+    { c: "Tab", w: "wide", f: "lp", special: "tab" },
+    { c: "q", s: "Q", f: "lp" }, { c: "w", s: "W", f: "lr" }, { c: "e", s: "E", f: "lm" },
+    { c: "r", s: "R", f: "li" }, { c: "t", s: "T", f: "li" }, { c: "z", s: "Z", f: "ri" },
+    { c: "u", s: "U", f: "ri" }, { c: "i", s: "I", f: "rm" }, { c: "o", s: "O", f: "rr" },
+    { c: "p", s: "P", f: "rp" }, { c: "ü", s: "Ü", f: "rp" }, { c: "+", s: "*", f: "rp" }
+  ],
+  [
+    { c: "Caps", w: "wider", f: "lp", special: "caps" },
+    { c: "a", s: "A", f: "lp", home: true }, { c: "s", s: "S", f: "lr", home: true },
+    { c: "d", s: "D", f: "lm", home: true }, { c: "f", s: "F", f: "li", home: true },
+    { c: "g", s: "G", f: "li" }, { c: "h", s: "H", f: "ri" },
+    { c: "j", s: "J", f: "ri", home: true }, { c: "k", s: "K", f: "rm", home: true },
+    { c: "l", s: "L", f: "rr", home: true }, { c: "ö", s: "Ö", f: "rp", home: true },
+    { c: "ä", s: "Ä", f: "rp" }, { c: "#", s: "'", f: "rp" },
+    { c: "Enter", w: "wide", f: "rp", special: "enter" }
+  ],
+  [
+    { c: "Shift", w: "wide", f: "lp", special: "shiftL" },
+    { c: "<", s: ">", f: "lp" }, { c: "y", s: "Y", f: "lp" }, { c: "x", s: "X", f: "lr" },
+    { c: "c", s: "C", f: "lm" }, { c: "v", s: "V", f: "li" }, { c: "b", s: "B", f: "li" },
+    { c: "n", s: "N", f: "ri" }, { c: "m", s: "M", f: "ri" }, { c: ",", s: ";", f: "rm" },
+    { c: ".", s: ":", f: "rr" }, { c: "-", s: "_", f: "rp" },
+    { c: "Shift", w: "widest", f: "rp", special: "shiftR" }
+  ],
+  [
+    { c: "Ctrl", w: "wide", f: "lp", special: "ctrl" },
+    { c: "Alt", w: "wide", f: "lp", special: "alt" },
+    { c: "Space", w: "space", f: "th", special: "space" },
+    { c: "Alt", w: "wide", f: "rp", special: "alt" },
+    { c: "Ctrl", w: "wide", f: "rp", special: "ctrl" }
+  ]
+];
+
+const CHAR_MAP = new Map();
+KB_LAYOUT.forEach((row, r) => {
+  row.forEach((k, c) => {
+    if (k.special) return;
+    if (k.c && k.c.length === 1) CHAR_MAP.set(k.c, { row: r, col: c, finger: k.f, shift: false });
+    if (k.s && k.s.length === 1) CHAR_MAP.set(k.s, { row: r, col: c, finger: k.f, shift: true });
+  });
+});
+CHAR_MAP.set(" ", { row: 4, col: 2, finger: "th", shift: false, isSpace: true });
+
+/* ---------- Lessons ---------- */
+const LESSONS = [
+  { id: "home1", name: "Grundreihe · f j", text: "fff jjj fjf jfj fff jjj fjfj jfjf ffj jjf fjjf jffj ffjj jjff fjfj jfjf" },
+  { id: "home2", name: "Grundreihe · d k", text: "ddd kkk dkd kdk ded kjk fdk jkd fjdk kdjf ddkk kkdd dkfj kdjf dfjk kjdf" },
+  { id: "home3", name: "Grundreihe · s l", text: "sss lll sls lsl sdl lks jsl fsl sdfl lkjs sslf llks fsjl sldk ksjf lsdf" },
+  { id: "home4", name: "Grundreihe · a ö", text: "aaa ööö aöa öaö asa öla asdf jklö aösd löka jalö flöa asdfjklö asdf jklö" },
+  { id: "home5", name: "Grundreihe · gesamt", text: "als das fas jaf öad kal sad lad dass fall sass asdf jklö fjdk slöa asdf" },
+  { id: "top1",  name: "Obere Reihe · e i r u", text: "eee iii rrr uuu er ei iu ir eu ri ui rei eis ruf eure rief reisen" },
+  { id: "top2",  name: "Obere Reihe · w o t z", text: "www ooo ttt zzz wo to zo wot zeit wort woh tot zoo ort toten wozu" },
+  { id: "top3",  name: "Obere Reihe · q p ü", text: "qqq ppp üüü quer pur üben quark plus über quere paar pur müde üblich" },
+  { id: "mix1",  name: "Wörter · Grund + Oben", text: "die der das ist und auf für wir sie ihr eine hier dort auch aber ohne" },
+  { id: "bot1",  name: "Untere Reihe · y x c v b n m", text: "yyy xxx ccc vvv bbb nnn mmm von nie mich noch bin vom bunt nett" },
+  { id: "bot2",  name: "Untere Reihe · Satzzeichen", text: "ach, gut. na, ja. so, so. hallo, welt. ich bin da. du auch, oder?" },
+  { id: "shift1", name: "Großbuchstaben", text: "Anna Berlin Claus Dora Emil Frank Gabi Hans Ida Jens Karl Lisa Maria" },
+  { id: "umlaut", name: "Umlaute & ß", text: "über schön Größe Straße Füße Häuser tägliche Bäume süß weiß heiß" },
+  { id: "sent1",  name: "Einfache Sätze", text: "Das Wetter ist heute schön. Ich gehe gerne spazieren. Der Himmel ist blau und die Sonne scheint." },
+  { id: "sent2",  name: "Zahlen", text: "1 2 3 4 5 6 7 8 9 0 im Jahr 2026 kostet das Buch 19,95 Euro und 42 Cent" },
+  { id: "pan1",   name: "Pangramm", text: "Victor jagt zwölf Boxkämpfer quer über den großen Sylter Deich." },
+  { id: "final",  name: "Freier Text", text: "Wer schnell schreiben möchte, braucht Geduld und Übung. Jeden Tag zehn Minuten sind mehr wert als zwei Stunden am Wochenende. Die Finger finden ihren Weg, wenn man ihnen Zeit lässt." }
+];
+
+const QUOTES = [
+  "Der Weg ist das Ziel.",
+  "Wer A sagt, muss auch B sagen.",
+  "Übung macht den Meister.",
+  "Morgenstund hat Gold im Mund.",
+  "In der Ruhe liegt die Kraft.",
+  "Es ist nicht alles Gold, was glänzt.",
+  "Wer rastet, der rostet.",
+  "Aller Anfang ist schwer.",
+  "Gut Ding will Weile haben.",
+  "Viele Wege führen nach Rom.",
+  "Wer zuletzt lacht, lacht am besten.",
+  "Ende gut, alles gut."
+];
+
+const PRACTICE_WORDS = ["der","die","das","und","ist","nicht","ein","eine","auf","für","mit","sich","auch","als","an","aus","bei","bis","durch","nach","von","vor","zu","aber","oder","weil","wenn","dass","doch","noch","schon","immer","nie","hier","dort","heute","morgen","gestern","sehr","mehr","gut","neu","alt","schön","groß","klein","viel","wenig","ganz","halb","oft","manchmal","Haus","Baum","Hand","Kopf","Auge","Weg","Tag","Nacht","Jahr","Zeit","Welt","Mensch","Freund","Familie","Arbeit","Leben","Liebe","Glück","Freude","Ruhe","Kraft","Mut","Hoffnung","Traum"];
+
+/* ---------- State ---------- */
+const state = {
+  currentLesson: null,
+  mode: "lesson",
+  text: "",
+  typed: "",
+  errorPositions: new Set(),
+  totalKeystrokes: 0,
+  errorCount: 0,
+  started: false,
+  startTime: 0,
+  finishTime: 0,
+  finished: false,
+  options: { showKb: true, sound: false, strict: false }
+};
+
+const $ = (id) => document.getElementById(id);
+const textPanel = $("textPanel");
+const keyboard = $("keyboard");
+const keyboardWrap = document.querySelector(".keyboard-wrap");
+const lessonList = $("lessonList");
+const progressBar = $("progressBar");
+const panelHint = $("panelHint");
+const sWpm = $("sWpm"), sAcc = $("sAcc"), sErr = $("sErr"), sTime = $("sTime");
+const resultPanel = $("resultPanel");
+const rWpm = $("rWpm"), rAcc = $("rAcc"), rErr = $("rErr"), rTime = $("rTime");
+const newBest = $("newBest");
+const optShowKb = $("optShowKb"), optSound = $("optSound"), optStrict = $("optStrict");
+
+/* ---------- Persistence ---------- */
+const STORAGE_KEY = "tenfinger.progress.v1";
+function loadProgress() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveProgress(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+function loadOptions() {
+  try {
+    const o = JSON.parse(localStorage.getItem(STORAGE_KEY + ".opts"));
+    if (o) Object.assign(state.options, o);
+  } catch {}
+}
+function saveOptions() { localStorage.setItem(STORAGE_KEY + ".opts", JSON.stringify(state.options)); }
+
+/* ---------- Keyboard rendering ---------- */
+function renderKeyboard() {
+  keyboard.innerHTML = "";
+  KB_LAYOUT.forEach((row, rIdx) => {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "kb-row";
+    row.forEach((k, cIdx) => {
+      const d = document.createElement("div");
+      d.className = "key f-" + k.f;
+      if (k.w) d.classList.add(k.w);
+      if (k.home) d.classList.add("home");
+      if (k.special === "space") d.classList.add("space");
+      d.dataset.row = rIdx;
+      d.dataset.col = cIdx;
+      if (k.c && k.c.length === 1) d.dataset.char = k.c;
+      if (k.s && k.s.length === 1) d.dataset.shifted = k.s;
+      if (k.special) d.dataset.special = k.special;
+
+      const label = document.createElement("span");
+      label.className = "label";
+
+      if (k.s && k.c.length === 1 && k.s !== k.c.toUpperCase()) {
+        const shifted = document.createElement("span");
+        shifted.className = "shifted";
+        shifted.textContent = k.s;
+        label.appendChild(shifted);
+      }
+      const mainEl = document.createElement("span");
+      mainEl.textContent = k.c;
+      label.appendChild(mainEl);
+
+      d.appendChild(label);
+      rowDiv.appendChild(d);
+    });
+    keyboard.appendChild(rowDiv);
+  });
+}
+
+function highlightNextKey() {
+  keyboard.querySelectorAll(".key.next, .key.shift-next").forEach((el) => {
+    el.classList.remove("next", "shift-next");
+  });
+  if (state.finished) return;
+  const ch = state.text[state.typed.length];
+  if (ch == null) return;
+  const info = CHAR_MAP.get(ch);
+  if (!info) return;
+  const keyEl = keyboard.querySelector(`.key[data-row="${info.row}"][data-col="${info.col}"]`);
+  if (keyEl) keyEl.classList.add("next");
+  if (info.shift) {
+    const useRightShift = info.col < 7;
+    const shiftRow = 3;
+    const shiftCol = useRightShift ? 12 : 0;
+    const shiftEl = keyboard.querySelector(`.key[data-row="${shiftRow}"][data-col="${shiftCol}"]`);
+    if (shiftEl) shiftEl.classList.add("shift-next");
+  }
+}
+
+function flashKey(ch) {
+  const info = CHAR_MAP.get(ch);
+  if (!info) return;
+  const keyEl = keyboard.querySelector(`.key[data-row="${info.row}"][data-col="${info.col}"]`);
+  if (keyEl) {
+    keyEl.classList.add("pressed");
+    setTimeout(() => keyEl.classList.remove("pressed"), 100);
+  }
+}
+
+/* ---------- Text rendering ---------- */
+function renderText() {
+  const hintText = state.finished ? "Abgeschlossen" : state.started ? "Läuft" : "Klicken & lostippen";
+  textPanel.classList.toggle("typing", state.started && !state.finished);
+  panelHint.innerHTML = `<span class="dot"></span> ${hintText}`;
+
+  const toRemove = [...textPanel.childNodes].filter(n => n !== progressBar && n !== panelHint);
+  toRemove.forEach(n => n.remove());
+
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < state.text.length; i++) {
+    const ch = state.text[i];
+    const span = document.createElement("span");
+    span.className = "char";
+    if (ch === " ") span.classList.add("space");
+    span.textContent = ch === " " ? " " : ch;
+
+    if (i < state.typed.length) {
+      span.classList.add("done");
+      if (state.errorPositions.has(i)) span.classList.add("wrong");
+    } else if (i === state.typed.length) {
+      span.classList.add("current");
+    }
+    frag.appendChild(span);
+  }
+  textPanel.appendChild(frag);
+
+  const pct = state.text.length > 0 ? (state.typed.length / state.text.length) * 100 : 0;
+  progressBar.style.width = pct + "%";
+}
+
+/* ---------- Stats ---------- */
+function elapsedSec() {
+  if (!state.started) return 0;
+  const end = state.finishTime || Date.now();
+  return (end - state.startTime) / 1000;
+}
+function computeStats() {
+  const sec = Math.max(elapsedSec(), 0.001);
+  const correctChars = state.typed.length - state.errorPositions.size;
+  const wpm = Math.round((correctChars / 5) / (sec / 60));
+  const acc = state.totalKeystrokes === 0
+    ? 100
+    : Math.max(0, Math.round(((state.totalKeystrokes - state.errorCount) / state.totalKeystrokes) * 100));
+  return { wpm: isFinite(wpm) ? wpm : 0, acc, sec };
+}
+function renderStats() {
+  const { wpm, acc, sec } = computeStats();
+  sWpm.textContent = wpm;
+  sAcc.innerHTML = acc + '<span class="unit">%</span>';
+  sErr.textContent = state.errorCount;
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  sTime.textContent = `${m}:${s.toString().padStart(2, "0")}`;
+  sAcc.className = "value " + (acc >= 97 ? "ok" : acc >= 92 ? "" : acc >= 85 ? "warn" : "err");
+  sErr.className = "value " + (state.errorCount === 0 ? "ok" : state.errorCount < 5 ? "" : "err");
+}
+
+/* ---------- Lesson handling ---------- */
+function renderLessonList() {
+  lessonList.innerHTML = "";
+  const progress = loadProgress();
+  LESSONS.forEach((l) => {
+    const btn = document.createElement("button");
+    btn.className = "item-btn" + (state.currentLesson && state.currentLesson.id === l.id ? " active" : "");
+    btn.dataset.id = l.id;
+    const best = progress[l.id];
+    const bestText = best ? `${best.wpm}· ${best.acc}%` : "—";
+    const cls = best ? (best.acc >= 95 ? "ok" : "has") : "";
+    btn.innerHTML = `<span>${l.name}</span><span class="best ${cls}">${bestText}</span>`;
+    btn.addEventListener("click", () => loadLesson(l.id));
+    lessonList.appendChild(btn);
+  });
+}
+
+function loadLesson(id) {
+  const l = LESSONS.find((x) => x.id === id);
+  if (!l) return;
+  state.currentLesson = l;
+  state.mode = "lesson";
+  setText(l.text);
+  renderLessonList();
+  updateModeBtns();
+}
+function loadPracticeMode() {
+  state.currentLesson = null;
+  state.mode = "practice";
+  setText(generatePracticeText());
+  renderLessonList();
+  updateModeBtns();
+}
+function loadQuoteMode() {
+  state.currentLesson = null;
+  state.mode = "quote";
+  setText(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  renderLessonList();
+  updateModeBtns();
+}
+function generatePracticeText() {
+  const n = 24;
+  const words = [];
+  for (let i = 0; i < n; i++) {
+    words.push(PRACTICE_WORDS[Math.floor(Math.random() * PRACTICE_WORDS.length)]);
+  }
+  return words.join(" ");
+}
+function updateModeBtns() {
+  document.querySelectorAll(".sidebar .item-btn[data-mode]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.mode === state.mode);
+  });
+}
+
+function setText(t) {
+  state.text = t;
+  state.typed = "";
+  state.errorPositions = new Set();
+  state.totalKeystrokes = 0;
+  state.errorCount = 0;
+  state.started = false;
+  state.startTime = 0;
+  state.finishTime = 0;
+  state.finished = false;
+  resultPanel.classList.remove("show");
+  renderText();
+  renderStats();
+  highlightNextKey();
+  textPanel.focus();
+}
+
+/* ---------- Input handling ---------- */
+function handleKey(e) {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+  if (e.key === "Escape") { e.preventDefault(); restartCurrent(); return; }
+  if (e.key === "Tab") { e.preventDefault(); nextLesson(); return; }
+  if (e.key === "Enter" && state.finished) { e.preventDefault(); restartCurrent(); return; }
+
+  if (state.finished) return;
+
+  if (e.key === "Backspace") {
+    e.preventDefault();
+    if (state.typed.length > 0) {
+      const lastIdx = state.typed.length - 1;
+      state.errorPositions.delete(lastIdx);
+      state.typed = state.typed.slice(0, -1);
+      renderText();
+      highlightNextKey();
+      renderStats();
+    }
+    return;
+  }
+
+  if (e.key.length !== 1) return;
+
+  if (!state.started) {
+    state.started = true;
+    state.startTime = Date.now();
+    startTimerLoop();
+  }
+
+  const expected = state.text[state.typed.length];
+  const actual = e.key;
+  state.totalKeystrokes++;
+
+  flashKey(actual);
+
+  if (actual === expected) {
+    state.typed += actual;
+  } else {
+    state.errorCount++;
+    if (state.options.sound) beep();
+    if (state.options.strict) {
+      renderText();
+      const cur = textPanel.querySelector(".char.current");
+      if (cur) {
+        cur.classList.add("wrong");
+        setTimeout(() => cur.classList.remove("wrong"), 150);
+      }
+      renderStats();
+      return;
+    }
+    state.errorPositions.add(state.typed.length);
+    state.typed += actual;
+  }
+
+  if (state.typed.length >= state.text.length) finishLesson();
+
+  renderText();
+  highlightNextKey();
+  renderStats();
+
+  e.preventDefault();
+}
+
+function beep() {
+  try {
+    const ctx = (beep._ctx ||= new (window.AudioContext || window.webkitAudioContext)());
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.value = 220;
+    g.gain.value = 0.04;
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start();
+    setTimeout(() => { osc.stop(); }, 70);
+  } catch {}
+}
+
+let timerHandle = null;
+function startTimerLoop() {
+  if (timerHandle) return;
+  timerHandle = setInterval(() => {
+    if (state.finished) return;
+    renderStats();
+  }, 250);
+}
+function stopTimerLoop() {
+  if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+}
+
+function finishLesson() {
+  state.finished = true;
+  state.finishTime = Date.now();
+  stopTimerLoop();
+  const { wpm, acc, sec } = computeStats();
+  rWpm.textContent = wpm;
+  rAcc.innerHTML = acc + '<span class="unit">%</span>';
+  rErr.textContent = state.errorCount;
+  rTime.innerHTML = Math.round(sec) + '<span class="unit">s</span>';
+  resultPanel.classList.add("show");
+
+  newBest.classList.remove("show");
+  if (state.mode === "lesson" && state.currentLesson) {
+    const prog = loadProgress();
+    const prev = prog[state.currentLesson.id];
+    const isBetter = !prev || wpm > prev.wpm || (wpm === prev.wpm && acc > prev.acc);
+    if (isBetter && state.totalKeystrokes > 0) {
+      prog[state.currentLesson.id] = { wpm, acc, at: Date.now() };
+      saveProgress(prog);
+      newBest.classList.add("show");
+      renderLessonList();
+    }
+  }
+}
+
+function restartCurrent() {
+  if (state.mode === "lesson" && state.currentLesson) setText(state.currentLesson.text);
+  else if (state.mode === "practice") setText(generatePracticeText());
+  else if (state.mode === "quote") setText(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+}
+function nextLesson() {
+  if (state.mode !== "lesson" || !state.currentLesson) { loadLesson(LESSONS[0].id); return; }
+  const idx = LESSONS.findIndex((l) => l.id === state.currentLesson.id);
+  loadLesson(LESSONS[(idx + 1) % LESSONS.length].id);
+}
+
+/* ---------- Options ---------- */
+function applyOptions() {
+  keyboardWrap.style.display = state.options.showKb ? "" : "none";
+  optShowKb.checked = state.options.showKb;
+  optSound.checked = state.options.sound;
+  optStrict.checked = state.options.strict;
+}
+optShowKb.addEventListener("change", () => { state.options.showKb = optShowKb.checked; applyOptions(); saveOptions(); });
+optSound.addEventListener("change", () => { state.options.sound = optSound.checked; saveOptions(); });
+optStrict.addEventListener("change", () => { state.options.strict = optStrict.checked; saveOptions(); });
+
+/* ---------- Buttons ---------- */
+$("btnRestart").addEventListener("click", () => { restartCurrent(); textPanel.focus(); });
+$("btnNextLesson").addEventListener("click", () => { nextLesson(); textPanel.focus(); });
+$("btnClearStats").addEventListener("click", () => {
+  if (confirm("Allen gespeicherten Fortschritt löschen?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    renderLessonList();
+  }
+});
+$("modePractice").addEventListener("click", () => { loadPracticeMode(); textPanel.focus(); });
+$("modeQuote").addEventListener("click", () => { loadQuoteMode(); textPanel.focus(); });
+
+/* ---------- Global key listener ---------- */
+window.addEventListener("keydown", (e) => {
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) return;
+  handleKey(e);
+});
+textPanel.addEventListener("click", () => textPanel.focus());
+
+/* ---------- Init ---------- */
+loadOptions();
+applyOptions();
+renderKeyboard();
+renderLessonList();
+loadLesson(LESSONS[0].id);
+</script>
+</body>
+</html>
